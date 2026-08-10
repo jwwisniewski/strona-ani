@@ -8,7 +8,7 @@ Decisions made with the user for this round:
 - **Stack:** confirmed — Contentful (CMS) + Astro (SSG) + Cloudflare Pages (hosting) + GitHub (repo/CI trigger).
 - **Language:** Polish only for now, but the content model and Astro routing must be built so English can be added later without a rewrite (Contentful locales + Astro's native i18n system, not bolted on retroactively).
 - **MVP features:** blog posts with categories/tags, a small photo gallery, a contact form. Comments and newsletter are explicitly out of scope. A shopping cart is a possible future addition — the architecture should not block it, but nothing cart-related gets built now.
-- **Domain:** a subdomain of the wife's existing main domain (e.g. `blog.herdomain.com`). DNS host is unknown at planning time, so setup steps must work whether that domain's DNS is on Cloudflare already or elsewhere.
+- **Domain:** a subdomain of the wife's existing main domain (e.g. `blog.herdomain.com`). Confirmed: the domain's DNS will be on Cloudflare. iCloud stays as the email provider (root domain MX untouched) — contact form uses Web3Forms, not Cloudflare's own email sending.
 
 ## Project Scaffolding
 
@@ -69,6 +69,8 @@ No `Author` content type: this is a single-author blog with no stated need for m
 
 **Web3Forms** — a static `<form>` POSTing to `https://api.web3forms.com/submit` with a hidden access key. No backend code, works without JS, free tier, built-in honeypot spam protection. Keeps the stack at three moving parts instead of four (avoids needing Cloudflare Pages Functions + a transactional email API for MVP). If more control is needed later, swap to a Pages Function (`functions/api/contact.ts`) + an email API — isolated change, nothing else in the architecture is affected.
 
+(Considered Cloudflare's own Email Service as a native alternative since DNS will be on Cloudflare — ruled out for now: general sending requires the Workers Paid plan, and while sending to one pre-verified destination address is free, it still requires building a Pages Function + Turnstile rather than a plain static form. Not worth the added complexity for MVP; Web3Forms keeps the contact form a zero-backend static form like the rest of the site.)
+
 ## Deploy Pipeline
 
 1. Push scaffolded repo to a new GitHub repo.
@@ -116,5 +118,5 @@ No `Author` content type: this is a single-author blog with no stated need for m
 - `npm run dev` locally renders home/blog/gallery/contact pages against real Contentful data before any deploy.
 - After connecting Cloudflare Pages, confirm the first automatic deploy succeeds and the `*.pages.dev` URL is live.
 - Publish a test entry in Contentful and confirm the webhook triggers a rebuild and the change appears live within ~1-2 minutes.
-- Submit a real test message through the contact form and confirm delivery.
+- Submit a real test message through the contact form and confirm delivery. (Done during Phase 5 — email delivery confirmed. The post-submit redirect to `/dziekujemy` couldn't be verified yet since it resolves against the placeholder `site` domain in `astro.config.mjs`; re-verify once Phase 8 sets the real domain.)
 - Once DNS is configured, load `https://blog.herdomain.com` directly and confirm SSL is valid and the custom-domain status shows Active in Cloudflare.

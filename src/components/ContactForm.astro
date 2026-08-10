@@ -1,0 +1,34 @@
+---
+interface Props {
+  siteTitle: string;
+  redirectUrl: string;
+}
+
+const { siteTitle, redirectUrl } = Astro.props;
+const accessKey = import.meta.env.PUBLIC_WEB3FORMS_ACCESS_KEY;
+---
+
+<form class="contact-form" action="https://api.web3forms.com/submit" method="POST">
+  <input type="hidden" name="access_key" value={accessKey} />
+  <input type="hidden" name="subject" value={`Nowa wiadomość z ${siteTitle}`} />
+  <input type="hidden" name="from_name" value={siteTitle} />
+  <input type="hidden" name="redirect" value={redirectUrl} />
+  <input type="checkbox" name="botcheck" style="display: none;" tabindex="-1" autocomplete="off" />
+
+  <label>
+    Imię
+    <input type="text" name="name" required />
+  </label>
+
+  <label>
+    Email
+    <input type="email" name="email" required />
+  </label>
+
+  <label>
+    Wiadomość
+    <textarea name="message" rows="6" required></textarea>
+  </label>
+
+  <button type="submit">Wyślij</button>
+</form>

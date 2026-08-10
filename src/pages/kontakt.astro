@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ContactForm from '../components/ContactForm.astro';
+import { getSiteSettings } from '../lib/contentful';
+
+const siteSettings = await getSiteSettings();
+const redirectUrl = new URL('/dziekujemy', Astro.site).toString();
+---
+
+<BaseLayout title="Kontakt">
+  <header class="page-header">
+    <h1>Kontakt</h1>
+    <p>
+      Możesz też napisać bezpośrednio na <a href={`mailto:${siteSettings.contactEmail}`}>{siteSettings.contactEmail}</a>.
+    </p>
+  </header>
+  <ContactForm siteTitle={siteSettings.siteTitle} redirectUrl={redirectUrl} />
+</BaseLayout>
