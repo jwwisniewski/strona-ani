@@ -1,0 +1,35 @@
+---
+import { getSiteSettings } from '../lib/contentful';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const siteSettings = await getSiteSettings();
+const pageTitle = title ? `${title} — ${siteSettings.siteTitle}` : siteSettings.siteTitle;
+const pageDescription = description ?? siteSettings.siteDescription;
+---
+
+<html lang="pl">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{pageTitle}</title>
+		{pageDescription && <meta name="description" content={pageDescription} />}
+	</head>
+	<body>
+		<Header siteSettings={siteSettings} />
+		<main class="container">
+			<slot />
+		</main>
+		<Footer siteSettings={siteSettings} />
+	</body>
+</html>

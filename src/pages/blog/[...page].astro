@@ -1,0 +1,25 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getAllPosts } from '../../lib/contentful';
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const posts = await getAllPosts();
+  return paginate(posts, { pageSize: 6 });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+---
+
+<BaseLayout title="Blog">
+  <header class="page-header">
+    <h1>Blog</h1>
+  </header>
+  <section>
+    {page.data.map((post) => <PostCard post={post} />)}
+    {page.data.length === 0 && <p>Brak wpisów.</p>}
+  </section>
+  <Pagination page={page} />
+</BaseLayout>

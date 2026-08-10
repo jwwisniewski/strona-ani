@@ -1,0 +1,46 @@
+---
+import type { BlogPost } from '../lib/contentful-types';
+import { buildSrcSet } from '../lib/contentful-image';
+import CategoryBadge from './CategoryBadge.astro';
+
+interface Props {
+  post: BlogPost;
+}
+
+const { post } = Astro.props;
+const formattedDate = new Date(post.publishDate).toLocaleDateString('pl-PL', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<article class="post-card">
+  {
+    post.featuredImage && (
+      <a href={`/blog/${post.slug}`}>
+        <img
+          src={post.featuredImage.url}
+          srcset={buildSrcSet(post.featuredImage.url, [400, 800, 1200])}
+          sizes="(min-width: 42rem) 42rem, 100vw"
+          alt={post.featuredImage.alt}
+          width={post.featuredImage.width}
+          height={post.featuredImage.height}
+          loading="lazy"
+        />
+      </a>
+    )
+  }
+  <h2><a href={`/blog/${post.slug}`}>{post.title}</a></h2>
+  <p class="post-meta">{formattedDate}</p>
+  {
+    post.categories.length > 0 && (
+      <div class="category-badges">
+        {post.categories.map((category) => (
+          <CategoryBadge category={category} />
+        ))}
+      </div>
+    )
+  }
+  {post.excerpt && <p class="excerpt">{post.excerpt}</p>}
+</article>

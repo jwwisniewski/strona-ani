@@ -1,0 +1,23 @@
+---
+import type { SiteSettings } from '../lib/contentful-types';
+
+interface Props {
+  siteSettings: SiteSettings;
+}
+
+const { siteSettings } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <span>&copy; {year} {siteSettings.siteTitle}</span>
+    <span>
+      {siteSettings.facebookUrl && <a href={siteSettings.facebookUrl}>Facebook</a>}
+      {siteSettings.facebookUrl && siteSettings.instagramUrl && ' · '}
+      {siteSettings.instagramUrl && <a href={siteSettings.instagramUrl}>Instagram</a>}
+      {' · '}
+      <a href={`mailto:${siteSettings.contactEmail}`}>{siteSettings.contactEmail}</a>
+    </span>
+  </div>
+</footer>

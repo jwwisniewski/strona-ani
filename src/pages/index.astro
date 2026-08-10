@@ -1,43 +1,22 @@
 ---
-import { getAllPosts, getSiteSettings } from '../lib/contentful';
-import { buildSrcSet } from '../lib/contentful-image';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import { getAllPosts } from '../lib/contentful';
 
 const posts = await getAllPosts();
-const siteSettings = await getSiteSettings();
+const latestPosts = posts.slice(0, 5);
 ---
 
-<html lang="pl">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{siteSettings.siteTitle}</title>
-	</head>
-	<body>
-		<h1>{siteSettings.siteTitle}</h1>
-		<p>{siteSettings.siteDescription}</p>
-		<ul>
-			{
-				posts.map((post) => (
-					<li>
-						<h2>{post.title}</h2>
-						<p>{post.excerpt}</p>
-						{post.featuredImage && (
-							<img
-								src={post.featuredImage.url}
-								srcset={buildSrcSet(post.featuredImage.url, [400, 800, 1200])}
-								alt={post.featuredImage.alt}
-								width={post.featuredImage.width}
-								height={post.featuredImage.height}
-							/>
-						)}
-						<div set:html={post.bodyHtml} />
-						<p>Kategorie: {post.categories.map((c) => c.name).join(', ')}</p>
-					</li>
-				))
-			}
-		</ul>
-	</body>
-</html>
+<BaseLayout>
+  <section>
+    {latestPosts.map((post) => <PostCard post={post} />)}
+    {latestPosts.length === 0 && <p>Brak wpisów.</p>}
+  </section>
+  {
+    posts.length > latestPosts.length && (
+      <p>
+        <a href="/blog">Zobacz wszystkie wpisy &rarr;</a>
+      </p>
+    )
+  }
+</BaseLayout>

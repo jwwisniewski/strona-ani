@@ -1,0 +1,24 @@
+---
+import type { SiteSettings } from '../lib/contentful-types';
+
+interface Props {
+  siteSettings: SiteSettings;
+}
+
+const { siteSettings } = Astro.props;
+
+const navLinks = [
+  { href: '/blog', label: 'Blog' },
+  { href: '/galeria', label: 'Galeria' },
+  { href: '/kontakt', label: 'Kontakt' },
+];
+---
+
+<header class="site-header">
+  <div class="container">
+    <a href="/" class="site-title">{siteSettings.siteTitle}</a>
+    <nav class="site-nav">
+      {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,32 @@
+---
+import type { GetStaticPaths, InferGetStaticPropsType } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PostCard from '../../../components/PostCard.astro';
+import Pagination from '../../../components/Pagination.astro';
+import { getAllCategories, getPostsByCategory } from '../../../lib/contentful';
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const categories = await getAllCategories();
+  const paths = [];
+  for (const category of categories) {
+    const posts = await getPostsByCategory(category.slug);
+    paths.push(...paginate(posts, { params: { slug: category.slug }, pageSize: 6, props: { category } }));
+  }
+  return paths;
+}) satisfies GetStaticPaths;
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { page, category } = Astro.props as Props;
+---
+
+<BaseLayout title={category.name} description={category.description}>
+  <header class="page-header">
+    <h1>{category.name}</h1>
+    {category.description && <p>{category.description}</p>}
+  </header>
+  <section>
+    {page.data.map((post) => <PostCard post={post} />)}
+    {page.data.length === 0 && <p>Brak wpisów w tej kategorii.</p>}
+  </section>
+  <Pagination page={page} />
+</BaseLayout>

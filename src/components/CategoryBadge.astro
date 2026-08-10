@@ -1,0 +1,11 @@
+---
+import type { Category } from '../lib/contentful-types';
+
+interface Props {
+  category: Category;
+}
+
+const { category } = Astro.props;
+---
+
+<a class="category-badge" href={`/kategoria/${category.slug}`}>{category.name}</a>
