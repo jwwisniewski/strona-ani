@@ -8,15 +8,6 @@
       "optional": false,
       "contentDeliveryApi": true,
       "contentManagementApi": true
-    },
-    {
-      "code": "en-US",
-      "name": "English (United States)",
-      "default": false,
-      "fallbackCode": "pl-PL",
-      "optional": true,
-      "contentDeliveryApi": true,
-      "contentManagementApi": true
     }
   ],
   "contentTypes": [
