@@ -1,0 +1,22 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import GalleryGrid from '../../components/GalleryGrid.astro';
+import { getAllGalleries } from '../../lib/contentful';
+
+export const getStaticPaths = (async () => {
+  const galleries = await getAllGalleries();
+  return galleries.map((gallery) => ({ params: { slug: gallery.slug }, props: { gallery } }));
+}) satisfies GetStaticPaths;
+
+const { gallery } = Astro.props;
+---
+
+<BaseLayout title={gallery.title} description={gallery.description}>
+  <header class="page-header">
+    <h1>{gallery.title}</h1>
+    {gallery.description && <p>{gallery.description}</p>}
+  </header>
+  <GalleryGrid images={gallery.images} />
+  {gallery.images.length === 0 && <p>Brak zdjęć w tej galerii.</p>}
+</BaseLayout>

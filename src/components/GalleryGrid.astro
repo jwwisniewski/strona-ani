@@ -1,0 +1,26 @@
+---
+import type { ContentfulImage } from '../lib/contentful-types';
+import { buildSrcSet } from '../lib/contentful-image';
+
+interface Props {
+  images: ContentfulImage[];
+}
+
+const { images } = Astro.props;
+---
+
+<div class="gallery-grid">
+  {
+    images.map((image) => (
+      <img
+        src={image.url}
+        srcset={buildSrcSet(image.url, [300, 600, 900])}
+        sizes="(min-width: 42rem) 300px, 45vw"
+        alt={image.alt}
+        width={image.width}
+        height={image.height}
+        loading="lazy"
+      />
+    ))
+  }
+</div>
