@@ -1,0 +1,120 @@
+# Plan: Wife's Blog (Contentful + Astro + Cloudflare Pages)
+
+## Context
+
+The user wants to build a personal blog for his wife. The project directory (`strona-ani`) is currently empty — this is a from-scratch build. A previous session had already settled on a headless stack (Contentful + Astro + Cloudflare Pages) so the wife can publish posts through a plain web UI with zero code/CLI involvement, and the site auto-deploys on every change.
+
+Decisions made with the user for this round:
+- **Stack:** confirmed — Contentful (CMS) + Astro (SSG) + Cloudflare Pages (hosting) + GitHub (repo/CI trigger).
+- **Language:** Polish only for now, but the content model and Astro routing must be built so English can be added later without a rewrite (Contentful locales + Astro's native i18n system, not bolted on retroactively).
+- **MVP features:** blog posts with categories/tags, a small photo gallery, a contact form. Comments and newsletter are explicitly out of scope. A shopping cart is a possible future addition — the architecture should not block it, but nothing cart-related gets built now.
+- **Domain:** a subdomain of the wife's existing main domain (e.g. `blog.herdomain.com`). DNS host is unknown at planning time, so setup steps must work whether that domain's DNS is on Cloudflare already or elsewhere.
+
+## Project Scaffolding
+
+Initialize with `npm create astro@latest .` (TypeScript strict, no UI framework — plain `.astro` components are sufficient).
+
+```
+strona-ani/
+├── astro.config.mjs
+├── .nvmrc                          # pin Node LTS
+├── .env.example                    # CONTENTFUL_SPACE_ID, CONTENTFUL_DELIVERY_TOKEN, CONTENTFUL_ENVIRONMENT, PUBLIC_WEB3FORMS_ACCESS_KEY
+├── src/
+│   ├── components/                 # Header, Footer, PostCard, CategoryBadge, GalleryGrid, ContactForm
+│   ├── layouts/                    # BaseLayout, PostLayout
+│   ├── lib/
+│   │   ├── contentful.ts           # SDK client singleton + typed fetch helpers (getAllPosts, getPostBySlug, getAllCategories, getGallery, getSiteSettings) — must defensively skip/log malformed entries rather than throwing, since a build-time exception fails the whole static build
+│   │   ├── contentful-types.ts     # hand-written field interfaces
+│   │   ├── contentful-image.ts     # Contentful Images API URL/srcset builder
+│   │   └── i18n.ts                 # locale constant/helpers (future-facing, not wired to routing yet)
+│   ├── pages/
+│   │   ├── index.astro
+│   │   ├── blog/index.astro, blog/[slug].astro
+│   │   ├── kategoria/[slug].astro
+│   │   ├── galeria/index.astro, galeria/[slug].astro
+│   │   ├── kontakt.astro, dziekujemy.astro, 404.astro
+│   └── styles/global.css
+```
+
+`astro.config.mjs`: `output: 'static'`, add `@astrojs/sitemap`.
+
+**i18n-readiness without building it now:** every `contentful.ts` helper takes a `locale` param defaulting to `pl-PL`. Adding English later means: enabling Astro's `i18n` config block (`locales: ['pl-PL','en-US']`), wrapping `pages/` in `[locale]/` per Astro's built-in i18n routing, and passing `Astro.currentLocale` into the existing helpers — no fetch logic gets rewritten.
+
+## Contentful Content Model
+
+Create a new space. Settings → Locales: add `pl-PL` and set it as **default** (overriding Contentful's `en-US` default). Leave localization off for now (see note below) — turning it on per-field later, when `en-US` is actually added, is a config change, not a migration.
+
+| Content Type | Key fields |
+|---|---|
+| **Blog Post** (`blogPost`) | `title`, `excerpt`, `body` (Rich text); `slug`; `featuredImage` (Media); `categories` (Reference, many); `tags` (Short text list, freeform); `publishDate`; optional `seoTitle`/`seoDescription` |
+| **Category** (`category`) | `name`, `slug`, `description` (optional) |
+| **Gallery** (`gallery`) | `title`, `slug`, `description`, `coverImage`, `images` (Media, many — captions come from each Asset's own title/description, no separate Photo type needed) |
+| **Site Settings** (`siteSettings`, singleton) | `siteTitle`/`siteDescription`, `logo`, `facebookUrl`, `instagramUrl`, `contactEmail` |
+
+Tags are a plain array field rather than a Reference content type — they're expected to be freeform/numerous and don't need their own listing pages for MVP; this can be upgraded later without breaking anything.
+
+No `Author` content type: this is a single-author blog with no stated need for multiple authors, so the byline (name, short bio, avatar) is hardcoded as static content in `PostLayout`/`BaseLayout` rather than a Contentful-managed entry. If multi-author ever becomes a real need, add the content type and reference then.
+
+**Locales stay `pl-PL`-only for now.** Do not enable "localization" on fields yet — Contentful lets you turn on localization for an existing field later without migrating data (the existing value simply becomes the default locale's value), so nothing is lost by waiting until `en-US` is actually being built (see Phase 10).
+
+## Astro ↔ Contentful Integration
+
+- Official `contentful` npm SDK, Content Delivery API, called only at **build time** (in frontmatter / `getStaticPaths()`) — no client-side API calls.
+- Rich text rendered via `@contentful/rich-text-html-renderer`'s `documentToHtmlString()`.
+- Images: use plain `<img>` with a manually built `srcset` against Contentful's Images API (`?w=...&fm=webp&q=80`) rather than Astro's own `<Image>`/`astro:assets` pipeline — Contentful's CDN already resizes/transcodes, so running it through Astro's image pipeline too would be redundant.
+- Featured-image `alt` text is sourced from the Contentful Asset's own `description` field, same pattern as gallery image captions — not a separate field on Blog Post.
+- **Build resilience:** since the whole site is statically generated, one malformed entry (missing required field, rich-text render error) must not throw and fail the entire `npm run build`. Fetch helpers should catch per-entry errors, log them, and skip that entry rather than crashing the build for every page.
+
+## Contact Form
+
+**Web3Forms** — a static `<form>` POSTing to `https://api.web3forms.com/submit` with a hidden access key. No backend code, works without JS, free tier, built-in honeypot spam protection. Keeps the stack at three moving parts instead of four (avoids needing Cloudflare Pages Functions + a transactional email API for MVP). If more control is needed later, swap to a Pages Function (`functions/api/contact.ts`) + an email API — isolated change, nothing else in the architecture is affected.
+
+## Deploy Pipeline
+
+1. Push scaffolded repo to a new GitHub repo.
+2. Cloudflare dashboard → Pages → Create project → Connect to Git → select repo.
+3. Build settings: preset **Astro**, build command `npm run build`, output `dist`, Node version pinned via `.nvmrc`.
+4. Set env vars in Pages project settings: `CONTENTFUL_SPACE_ID`, `CONTENTFUL_DELIVERY_TOKEN`, `CONTENTFUL_ENVIRONMENT=master`, `PUBLIC_WEB3FORMS_ACCESS_KEY`.
+5. Every push to `main` deploys to production; other branches get automatic preview URLs.
+6. Cloudflare dashboard → Notifications → add a "Pages deployment failed" alert to an email the wife checks, so a failed rebuild (e.g. from Fix #1's build resilience gap being hit anyway) is visible instead of silently leaving the site stale after she publishes.
+
+## Contentful → Cloudflare Rebuild Trigger
+
+1. Cloudflare Pages → Settings → Builds & deployments → Build hooks → create one, copy the POST URL.
+2. Contentful → Settings → Webhooks → add webhook pointing at that URL, triggered on Entry publish/unpublish/delete + Asset publish, scoped to the four content types above (avoids spurious rebuilds from unrelated changes).
+3. Result: wife publishes in Contentful → webhook fires → Cloudflare rebuilds → live in ~1-2 min.
+
+## Custom Subdomain + DNS
+
+1. Cloudflare Pages project → Custom domains → Add `blog.herdomain.com`.
+2. **If the main domain's DNS is already on Cloudflare:** Cloudflare auto-detects the zone and offers to create the record — confirm it.
+3. **If DNS is hosted elsewhere:** Cloudflare shows the exact CNAME target (typically `<project-name>.pages.dev`). Log into wherever `herdomain.com`'s DNS is managed → add a record: Type `CNAME`, Host `blog`, Value = the shown `pages.dev` target, TTL default → save.
+4. Wait for propagation; Cloudflare auto-issues a free SSL cert once DNS resolves. Verify `https://blog.herdomain.com` loads and shows Active in the Pages dashboard. This only touches the `blog` label — the root domain's existing DNS/hosting is untouched.
+
+## Phasing / Milestones
+
+0. **Setup** — GitHub repo, Contentful space + `pl-PL` default locale (no localization flags yet), scaffold Astro, confirm local dev renders.
+1. **Content model** — create all content types/fields (no `Author` type; byline is static); add a few sample entries.
+2. **Contentful integration** — `contentful.ts` client + helpers; verify rich text and image rendering locally against real data; confirm a deliberately malformed sample entry is skipped/logged rather than crashing the build.
+3. **Core pages** — home, blog index (+ pagination), post detail, category page (+ same pagination pattern as blog index).
+4. **Gallery** — content type wired up, index + detail pages, `srcset` images.
+5. **Contact form** — Web3Forms integration + thank-you page; test a real submission.
+6. **Deploy pipeline** — connect Cloudflare Pages to GitHub, set env vars, enable deploy-failure email notifications, confirm first `*.pages.dev` deploy.
+7. **Automation** — Contentful build-hook webhook; publish a test entry, confirm rebuild + live update.
+8. **Custom domain** — add `blog.herdomain.com`, configure DNS, verify SSL.
+9. **Polish/handoff** — sitemap, robots.txt, favicon, basic SEO meta, optional cookie-free Cloudflare Web Analytics, and a short "how to publish a post" guide (with screenshots) for the wife.
+10. **Iterate** — real content, design refinement, revisit `en-US` activation when actually needed.
+
+## Future Shopping-Cart Flags (not built now)
+
+- Keep any future `product` content type fully separate from `blogPost`/`category` so neither is warped to accommodate the other.
+- A static-friendly cart tool (Snipcart, Stripe Payment Links) overlays via a client-side widget and needs no changes to the Contentful/Astro/Cloudflare pipeline — just a new content type + route (e.g. `/sklep`) later.
+- Drive primary site navigation from Site Settings/config rather than hardcoding it in markup, so adding a "Sklep" nav entry later is a content change, not a code change.
+
+## Verification
+
+- `npm run dev` locally renders home/blog/gallery/contact pages against real Contentful data before any deploy.
+- After connecting Cloudflare Pages, confirm the first automatic deploy succeeds and the `*.pages.dev` URL is live.
+- Publish a test entry in Contentful and confirm the webhook triggers a rebuild and the change appears live within ~1-2 minutes.
+- Submit a real test message through the contact form and confirm delivery.
+- Once DNS is configured, load `https://blog.herdomain.com` directly and confirm SSL is valid and the custom-domain status shows Active in Cloudflare.
