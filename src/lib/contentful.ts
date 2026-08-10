@@ -1,5 +1,6 @@
 import { createClient, type Asset, type Entry } from 'contentful';
-import { documentToHtmlString } from '@contentful/rich-text-html-renderer';
+import { documentToHtmlString, type Options } from '@contentful/rich-text-html-renderer';
+import { BLOCKS, INLINES } from '@contentful/rich-text-types';
 import type {
   BlogPostSkeleton,
   CategorySkeleton,
@@ -49,6 +50,53 @@ function mapAsset(asset: Asset | undefined | null): ContentfulImage | undefined 
   };
 }
 
+// Resolves an entry linked in rich text (entry-hyperlink / embedded-entry) to a
+// site URL, based on which content type it is. Returns null for unresolved
+// links (e.g. the target was unpublished/deleted) so callers can degrade
+// gracefully instead of producing a broken href.
+function resolveEntryUrl(target: unknown): string | null {
+  const t = target as { sys?: { contentType?: { sys?: { id?: string } } }; fields?: { slug?: string } } | undefined;
+  const contentTypeId = t?.sys?.contentType?.sys?.id;
+  const slug = t?.fields?.slug;
+  if (!contentTypeId || !slug) return null;
+  switch (contentTypeId) {
+    case 'blogPost':
+      return `/blog/${slug}`;
+    case 'category':
+      return `/kategoria/${slug}`;
+    case 'gallery':
+      return `/galeria/${slug}`;
+    default:
+      return null;
+  }
+}
+
+function entryTitle(target: unknown): string | null {
+  const t = target as { fields?: { title?: string; name?: string } } | undefined;
+  return t?.fields?.title ?? t?.fields?.name ?? null;
+}
+
+const richTextOptions: Options = {
+  renderNode: {
+    [INLINES.ENTRY_HYPERLINK]: (node, next) => {
+      const url = resolveEntryUrl(node.data.target);
+      const text = next(node.content);
+      return url ? `<a href="${url}">${text}</a>` : text;
+    },
+    [BLOCKS.EMBEDDED_ENTRY]: (node) => {
+      const url = resolveEntryUrl(node.data.target);
+      const title = entryTitle(node.data.target);
+      if (!url || !title) return '';
+      return `<a class="embedded-entry-card" href="${url}">${title}</a>`;
+    },
+    [INLINES.EMBEDDED_ENTRY]: (node) => {
+      const url = resolveEntryUrl(node.data.target);
+      const title = entryTitle(node.data.target) ?? '';
+      return url ? `<a href="${url}">${title}</a>` : title;
+    },
+  },
+};
+
 function mapCategory(entry: Entry<CategorySkeleton>): Category {
   const { name, slug, description } = entry.fields;
   if (!name || !slug) throw new Error(`Category ${entry.sys.id} is missing name/slug`);
@@ -70,7 +118,7 @@ function mapBlogPost(entry: Entry<BlogPostSkeleton>): BlogPost {
     id: entry.sys.id,
     title,
     excerpt,
-    bodyHtml: documentToHtmlString(body),
+    bodyHtml: documentToHtmlString(body, richTextOptions),
     slug,
     featuredImage: mapAsset(featuredImage as Asset | undefined),
     categories: resolvedCategories,

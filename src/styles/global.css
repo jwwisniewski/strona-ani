@@ -133,6 +133,16 @@ a {
   margin-top: 0;
 }
 
+.embedded-entry-card {
+  display: block;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 600;
+}
+
 .pagination {
   display: flex;
   justify-content: space-between;
