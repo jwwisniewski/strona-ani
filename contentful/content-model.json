@@ -1,0 +1,154 @@
+{
+  "locales": [
+    {
+      "code": "pl-PL",
+      "name": "Polish (Poland)",
+      "default": true,
+      "fallbackCode": null,
+      "optional": false,
+      "contentDeliveryApi": true,
+      "contentManagementApi": true
+    },
+    {
+      "code": "en-US",
+      "name": "English (United States)",
+      "default": false,
+      "fallbackCode": "pl-PL",
+      "optional": true,
+      "contentDeliveryApi": true,
+      "contentManagementApi": true
+    }
+  ],
+  "contentTypes": [
+    {
+      "sys": { "id": "category" },
+      "name": "Category",
+      "description": "",
+      "displayField": "name",
+      "fields": [
+        { "id": "name", "name": "Name", "type": "Symbol", "required": true, "localized": false },
+        {
+          "id": "slug",
+          "name": "Slug",
+          "type": "Symbol",
+          "required": true,
+          "localized": false,
+          "validations": [{ "unique": true }]
+        },
+        { "id": "description", "name": "Description", "type": "Text", "required": false, "localized": false }
+      ]
+    },
+    {
+      "sys": { "id": "blogPost" },
+      "name": "Blog Post",
+      "description": "",
+      "displayField": "title",
+      "fields": [
+        { "id": "title", "name": "Title", "type": "Symbol", "required": true, "localized": false },
+        { "id": "excerpt", "name": "Excerpt", "type": "Symbol", "required": false, "localized": false },
+        { "id": "body", "name": "Body", "type": "RichText", "required": true, "localized": false },
+        {
+          "id": "slug",
+          "name": "Slug",
+          "type": "Symbol",
+          "required": true,
+          "localized": false,
+          "validations": [{ "unique": true }]
+        },
+        {
+          "id": "featuredImage",
+          "name": "Featured Image",
+          "type": "Link",
+          "linkType": "Asset",
+          "required": false,
+          "localized": false
+        },
+        {
+          "id": "categories",
+          "name": "Categories",
+          "type": "Array",
+          "required": false,
+          "localized": false,
+          "items": {
+            "type": "Link",
+            "linkType": "Entry",
+            "validations": [{ "linkContentType": ["category"] }]
+          }
+        },
+        {
+          "id": "tags",
+          "name": "Tags",
+          "type": "Array",
+          "required": false,
+          "localized": false,
+          "items": { "type": "Symbol" }
+        },
+        { "id": "publishDate", "name": "Publish Date", "type": "Date", "required": true, "localized": false },
+        { "id": "seoTitle", "name": "SEO Title", "type": "Symbol", "required": false, "localized": false },
+        { "id": "seoDescription", "name": "SEO Description", "type": "Symbol", "required": false, "localized": false }
+      ]
+    },
+    {
+      "sys": { "id": "gallery" },
+      "name": "Gallery",
+      "description": "",
+      "displayField": "title",
+      "fields": [
+        { "id": "title", "name": "Title", "type": "Symbol", "required": true, "localized": false },
+        {
+          "id": "slug",
+          "name": "Slug",
+          "type": "Symbol",
+          "required": true,
+          "localized": false,
+          "validations": [{ "unique": true }]
+        },
+        { "id": "description", "name": "Description", "type": "Text", "required": false, "localized": false },
+        {
+          "id": "coverImage",
+          "name": "Cover Image",
+          "type": "Link",
+          "linkType": "Asset",
+          "required": false,
+          "localized": false
+        },
+        {
+          "id": "images",
+          "name": "Images",
+          "type": "Array",
+          "required": false,
+          "localized": false,
+          "items": { "type": "Link", "linkType": "Asset" }
+        }
+      ]
+    },
+    {
+      "sys": { "id": "siteSettings" },
+      "name": "Site Settings",
+      "description": "Singleton — only one entry should ever exist.",
+      "displayField": "siteTitle",
+      "fields": [
+        { "id": "siteTitle", "name": "Site Title", "type": "Symbol", "required": true, "localized": false },
+        { "id": "siteDescription", "name": "Site Description", "type": "Text", "required": false, "localized": false },
+        { "id": "logo", "name": "Logo", "type": "Link", "linkType": "Asset", "required": false, "localized": false },
+        { "id": "facebookUrl", "name": "Facebook URL", "type": "Symbol", "required": false, "localized": false },
+        { "id": "instagramUrl", "name": "Instagram URL", "type": "Symbol", "required": false, "localized": false },
+        { "id": "contactEmail", "name": "Contact Email", "type": "Symbol", "required": true, "localized": false }
+      ]
+    }
+  ],
+  "editorInterfaces": [
+    {
+      "sys": { "contentType": { "sys": { "type": "Link", "linkType": "ContentType", "id": "blogPost" } } },
+      "controls": [{ "fieldId": "slug", "widgetId": "slugEditor" }]
+    },
+    {
+      "sys": { "contentType": { "sys": { "type": "Link", "linkType": "ContentType", "id": "category" } } },
+      "controls": [{ "fieldId": "slug", "widgetId": "slugEditor" }]
+    },
+    {
+      "sys": { "contentType": { "sys": { "type": "Link", "linkType": "ContentType", "id": "gallery" } } },
+      "controls": [{ "fieldId": "slug", "widgetId": "slugEditor" }]
+    }
+  ]
+}
