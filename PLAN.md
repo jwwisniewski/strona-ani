@@ -65,6 +65,18 @@ No `Author` content type: this is a single-author blog with no stated need for m
 - Featured-image `alt` text is sourced from the Contentful Asset's own `description` field, same pattern as gallery image captions — not a separate field on Blog Post.
 - **Build resilience:** since the whole site is statically generated, one malformed entry (missing required field, rich-text render error) must not throw and fail the entire `npm run build`. Fetch helpers should catch per-entry errors, log them, and skip that entry rather than crashing the build for every page.
 
+## Content Preview — DONE
+
+Added mid-build (not in the original scaffolding) once real editing started: the wife needs to see draft changes instantly while editing in Contentful, without waiting for a publish + rebuild.
+
+- **Client-side, not SSR** — kept the site fully static. `src/pages/podglad.astro` is a static shell page whose client-side JS calls Contentful's **Preview API** (`preview.contentful.com`, using a separate Preview token that returns draft/unpublished content) directly from the browser. No Cloudflare adapter, no server-rendered routes.
+- **Code reuse, not duplication** — `contentful.ts`'s pure mapping/rendering functions (`mapBlogPost`, `mapAsset`, `richTextOptions`, etc.) were extracted into `contentful-mappers.ts` (no client instantiation, no `import.meta.env` access), so the exact same logic used for the real Delivery-API build is reused by the browser-side Preview-API fetch.
+- **Access control:** a shared secret (`PUBLIC_PREVIEW_SECRET`) is required as a query param, checked client-side, so the preview URL isn't publicly browsable. `/podglad` is `noindex`ed and excluded from the sitemap.
+- **Contentful wiring:** a "Content preview" platform was created (via Management API) for `blogPost`, with the preview URL template `.../podglad?slug={entry.fields.slug}&type=blogPost&secret=...` — this makes a "Preview" button appear directly in Contentful's entry editor.
+- New env vars, all `PUBLIC_` (used client-side, so not really secret regardless of prefix): `PUBLIC_CONTENTFUL_SPACE_ID`, `PUBLIC_CONTENTFUL_PREVIEW_TOKEN`, `PUBLIC_PREVIEW_SECRET`.
+- Currently supports `blogPost` only — extend `podglad.astro` and add another Content preview configuration if gallery/category preview is ever needed.
+- Verified end-to-end with a real unpublished draft edit: Preview API returned the new draft title while Delivery API still returned the old published one.
+
 ## Contact Form
 
 **Web3Forms** — a static `<form>` POSTing to `https://api.web3forms.com/submit` with a hidden access key. No backend code, works without JS, free tier, built-in honeypot spam protection. Keeps the stack at three moving parts instead of four (avoids needing Cloudflare Pages Functions + a transactional email API for MVP). If more control is needed later, swap to a Pages Function (`functions/api/contact.ts`) + an email API — isolated change, nothing else in the architecture is affected.
