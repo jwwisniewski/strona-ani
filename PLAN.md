@@ -102,7 +102,13 @@ Added mid-build (not in the original scaffolding) once real editing started: the
 6. Every push to `main` deploys to production; other branches get preview versions (per step 2's non-production deploy command).
 7. Cloudflare's default trailing-slash redirect behavior for static assets (e.g. `/blog` → `307` → `/blog/` → `200`) is expected, not a bug — confirmed during verification.
 8. **Gotcha hit during first deploy:** `CONTENTFUL_ENVIRONMENT` was accidentally entered as `aster` (truncated `master`) in the dashboard, causing a Contentful 404 at build time. Fixed by correcting the variable value and retrying.
-9. **Still open:** deploy-failure notifications (Cloudflare dashboard → Notifications) not yet configured — carry this into Phase 9 polish/handoff, since the wife needs to know if a publish doesn't go live.
+9. **Deploy-failure notifications — investigated in Phase 9, skipped for now.** There is no simple toggle for this. Classic Cloudflare "Notifications" (dashboard, top-level) does not cover Workers Builds at all — that's a different, newer mechanism called **Event Subscriptions**. To get notified on a failed build you actually need to:
+   1. Create a Cloudflare **Queue** (`wrangler queues create builds-event-subscriptions`).
+   2. Deploy a **second, separate Worker** that consumes that queue — Cloudflare provides a ready template: `npm create cloudflare@latest -- --template=cloudflare/templates/workers-builds-notifications-template` (repo: `cloudflare/templates`, dir `workers-builds-notifications-template`). Needs its own `wrangler deploy`.
+   3. The template only sends to a **Slack or Discord webhook**, not email — for an actual email, its `src/index.ts` would need modifying to call an email API instead (Cloudflare Email Service to one verified destination address is free, per the Content Preview / Contact Form email-service research earlier in this doc — reuse that path rather than researching it again).
+   4. Create a scoped Cloudflare API token (`Workers Builds Configuration: Read`, `Workers Scripts: Read`) and set it as a secret on the consumer Worker.
+   5. Create the actual **event subscription** linking the queue to `build.failed`/`build.succeeded`/`build.cancelled` events (dashboard: Queues → your queue → Subscriptions tab → Subscribe to events → source "Workers Builds"; or `wrangler queues subscription create`).
+   - **Decision:** not worth deploying a whole second Worker + Queue for a personal blog's failure alerts. Revisit only if a silently-failed deploy actually causes a real problem (i.e. the wife publishes, nothing goes live, and nobody notices for a while).
 
 ## Contentful → Cloudflare Rebuild Trigger — DONE
 
@@ -127,10 +133,10 @@ Under the unified Workers Git-integration flow this project actually uses (see D
 3. **Core pages** — home, blog index (+ pagination), post detail, category page (+ same pagination pattern as blog index).
 4. **Gallery** — content type wired up, index + detail pages, `srcset` images.
 5. **Contact form** — DONE. Web3Forms integration + thank-you page; real submission confirmed delivered by email.
-6. **Deploy pipeline** — DONE. Live at `strona-ani.j-w-wisniewski.workers.dev` via Cloudflare's unified Workers Git-integration (see Deploy Pipeline section for actual mechanics vs. original plan). Deploy-failure notifications still outstanding — moved to Phase 9.
+6. **Deploy pipeline** — DONE. Live at `strona-ani.j-w-wisniewski.workers.dev` via Cloudflare's unified Workers Git-integration (see Deploy Pipeline section for actual mechanics vs. original plan).
 7. **Automation** — DONE. Deploy Hook created (Workers & Pages → Settings → Builds → Deploy Hooks), Contentful webhook created via Management API scoped to the four content types. Verified end-to-end: republished a test entry, webhook call logged `200` in Contentful, a new Cloudflare deployment landed ~40s later, site confirmed still live after.
 8. **Custom domain** — add `blog.herdomain.com`, configure DNS, verify SSL.
-9. **Polish/handoff** — sitemap, robots.txt, favicon, basic SEO meta, optional cookie-free Cloudflare Web Analytics, deploy-failure notifications (deferred from Phase 6), and a short "how to publish a post" guide (with screenshots) for the wife.
+9. **Polish/handoff** — IN PROGRESS. DONE: robots.txt, Open Graph/Twitter Card meta + canonical URL, Cloudflare Web Analytics beacon. Skipped: favicon (still Astro default, revisit once a logo exists), deploy-failure notifications (investigated — see Deploy Pipeline section; real cost is a whole second Worker+Queue, not worth it for now). Still open: sitemap (already done via `@astrojs/sitemap` since Phase 0, nothing further needed), and the "how to publish a post" guide (with screenshots) for the wife.
 10. **Iterate** — real content, design refinement, revisit `en-US` activation when actually needed.
 
 ## Future Shopping-Cart Flags (not built now)
