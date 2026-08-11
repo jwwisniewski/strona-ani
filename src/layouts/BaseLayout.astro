@@ -41,6 +41,8 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 		<meta name="twitter:title" content={pageTitle} />
 		{pageDescription && <meta name="twitter:description" content={pageDescription} />}
 		{pageImage && <meta name="twitter:image" content={pageImage} />}
+
+		<script is:inline type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "c8335bdda5634cd690bdabd0b39951e4"}'></script>
 	</head>
 	<body>
 		<Header siteSettings={siteSettings} />
