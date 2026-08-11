@@ -73,6 +73,18 @@ function entryTitle(target: unknown): string | null {
   return t?.fields?.title ?? t?.fields?.name ?? null;
 }
 
+// Best-effort thumbnail for an embedded-entry card (blogPost's featuredImage or
+// gallery's coverImage). Isolated try/catch so a broken thumbnail asset just
+// means no image, not a failure of the whole containing post.
+function entryThumbnail(target: unknown): ContentfulImage | undefined {
+  const t = target as { fields?: { featuredImage?: Asset; coverImage?: Asset } } | undefined;
+  try {
+    return mapAsset(t?.fields?.featuredImage ?? t?.fields?.coverImage);
+  } catch {
+    return undefined;
+  }
+}
+
 export const richTextOptions: Options = {
   renderNode: {
     [INLINES.ENTRY_HYPERLINK]: (node, next) => {
@@ -84,7 +96,11 @@ export const richTextOptions: Options = {
       const url = resolveEntryUrl(node.data.target);
       const title = entryTitle(node.data.target);
       if (!url || !title) return '';
-      return `<a class="embedded-entry-card" href="${url}">${title}</a>`;
+      const thumbnail = entryThumbnail(node.data.target);
+      const img = thumbnail
+        ? `<img class="embedded-entry-card-thumb" src="${thumbnail.url}" alt="" width="80" height="80" />`
+        : '';
+      return `<a class="embedded-entry-card" href="${url}">${img}<span>${title}</span></a>`;
     },
     [INLINES.EMBEDDED_ENTRY]: (node) => {
       const url = resolveEntryUrl(node.data.target);
