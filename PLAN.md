@@ -110,6 +110,19 @@ Added mid-build (not in the original scaffolding) once real editing started: the
    5. Create the actual **event subscription** linking the queue to `build.failed`/`build.succeeded`/`build.cancelled` events (dashboard: Queues → your queue → Subscriptions tab → Subscribe to events → source "Workers Builds"; or `wrangler queues subscription create`).
    - **Decision:** not worth deploying a whole second Worker + Queue for a personal blog's failure alerts. Revisit only if a silently-failed deploy actually causes a real problem (i.e. the wife publishes, nothing goes live, and nobody notices for a while).
 
+## Security Hardening — DONE (supply chain), PENDING (Aikido)
+
+Triggered by a security review of the whole codebase plus a "what if a malicious package ends up in the dependency tree" question while looking at a real build log.
+
+**Code fixes:** `contentful-mappers.ts`'s rich-text `renderNode` overrides (entry-hyperlink, embedded-entry) and `podglad.astro`'s featured-image markup interpolated `url`/`title`/image-src values into raw HTML strings without escaping. Contentful's `slug`/`title` fields have no format validation at the schema level, so nothing blocks HTML-significant characters being stored via the Content Management API. Exploitability requires trusted Contentful editor access (not public input) on this two-person CMS, so this stayed below the high-confidence bar in review, but escaping is cheap regardless — added `escapeHtml` (exported from `contentful-mappers.ts`, reused in `podglad.astro` instead of a duplicate copy).
+
+**Supply-chain protections (`.npmrc`, committed):**
+- `ignore-scripts=true` — blocks preinstall/install/postinstall scripts for every dependency, unconditionally. Verified the build still works: esbuild's native binary resolves via `optionalDependencies` (platform-specific packages), not its postinstall script. `package.json`'s `allowScripts` field documents the packages that legitimately need scripts if this is ever turned off (esbuild, fsevents, workerd — native-binary fetchers from trusted maintainers).
+- `min-release-age=7` — refuses to resolve to a package version published less than 7 days ago. **Important nuance:** this only affects `npm install`/`npm update` (version resolution) — `npm ci`/`npm clean-install` always replays `package-lock.json`'s exact pinned versions regardless of age. So this protects the moment someone actually adds/bumps a dependency and regenerates the lockfile, not every build.
+- **Gap:** Cloudflare's Workers Builds image runs **npm 10.9.2**, which predates both `ignore-scripts` enforcement-by-default semantics and `min-release-age` (both are recent npm 11.x features). Cloudflare's own `npm clean-install` step won't enforce either setting. This isn't a hole in practice, though — their build replays the already-reviewed, already-pinned lockfile exactly, so the actual risk window (a human running `npm install`/`update`) is wherever that command is actually run, which so far has been this local machine on npm 11.19.
+
+**Aikido Security — investigated, not yet set up:** free tier confirmed usable (2 users, 10 repos, real SAST/SCA/Secrets/IaC scanning, free forever — not a trial), comfortably covers this single-repo project. Setup is dashboard-only (connect GitHub repo via Aikido's own onboarding) — no CLI/API path found for automating this. Next step if pursued: sign up at aikido.dev, connect `jwwisniewski/strona-ani`.
+
 ## Contentful → Cloudflare Rebuild Trigger — DONE
 
 Under the unified Workers Git-integration flow this project actually uses (see Deploy Pipeline above), the equivalent feature is called **Deploy Hooks** (renamed from Pages' "Build hooks"), with built-in deduplication if the webhook fires multiple times in a burst:
