@@ -7,5 +7,9 @@ export default defineConfig({
   output: 'static',
   // TODO: set to the real production URL once the subdomain is live (Phase 8)
   site: 'https://blog.herdomain.com',
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      filter: (page) => !page.includes('/podglad'),
+    }),
+  ],
 });

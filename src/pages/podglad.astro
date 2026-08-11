@@ -1,0 +1,95 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Podgląd" noindex={true}>
+  <div id="preview-root">
+    <p>Ładowanie podglądu…</p>
+  </div>
+</BaseLayout>
+
+<script>
+  import { createClient } from 'contentful';
+  import { mapBlogPost } from '../lib/contentful-mappers';
+  import { buildSrcSet } from '../lib/contentful-image';
+
+  function escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  const root = document.getElementById('preview-root')!;
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('slug');
+  const secret = params.get('secret');
+  const contentType = params.get('type') ?? 'blogPost';
+
+  async function run() {
+    if (secret !== import.meta.env.PUBLIC_PREVIEW_SECRET) {
+      root.innerHTML = '<p>Brak dostępu — nieprawidłowy link podglądu.</p>';
+      return;
+    }
+    if (!slug) {
+      root.innerHTML = '<p>Brak parametru "slug" w adresie URL.</p>';
+      return;
+    }
+    if (contentType !== 'blogPost') {
+      root.innerHTML = `<p>Podgląd dla typu "${escapeHtml(contentType)}" nie jest jeszcze obsługiwany.</p>`;
+      return;
+    }
+
+    const client = createClient({
+      space: import.meta.env.PUBLIC_CONTENTFUL_SPACE_ID,
+      accessToken: import.meta.env.PUBLIC_CONTENTFUL_PREVIEW_TOKEN,
+      host: 'preview.contentful.com',
+      environment: 'master',
+    });
+
+    try {
+      const res = await client.getEntries({
+        content_type: 'blogPost',
+        'fields.slug': slug,
+        locale: 'pl-PL',
+        include: 2,
+      });
+      const entry = res.items[0];
+      if (!entry) {
+        root.innerHTML = '<p>Nie znaleziono wpisu o tym slugu (sprawdź, czy jest zapisany w Contentful).</p>';
+        return;
+      }
+
+      const post = mapBlogPost(entry as never);
+      const date = new Date(post.publishDate).toLocaleDateString('pl-PL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const categoriesHtml = post.categories
+        .map((c) => `<span class="category-badge">${escapeHtml(c.name)}</span>`)
+        .join('');
+      const imageHtml = post.featuredImage
+        ? `<img src="${post.featuredImage.url}" srcset="${buildSrcSet(post.featuredImage.url, [400, 800, 1200])}" alt="${escapeHtml(post.featuredImage.alt)}" width="${post.featuredImage.width ?? ''}" height="${post.featuredImage.height ?? ''}" />`
+        : '';
+
+      root.innerHTML = `
+        <div class="page-header" style="background:#fffbe6;border:1px solid #e0c200;padding:0.75rem 1rem;border-radius:0.5rem;margin-bottom:1.5rem;">
+          <strong>PODGLĄD — może zawierać niepublikowane zmiany</strong>
+        </div>
+        <article>
+          <h1>${escapeHtml(post.title)}</h1>
+          <p class="post-meta">${date}</p>
+          ${categoriesHtml ? `<div class="category-badges">${categoriesHtml}</div>` : ''}
+          ${imageHtml}
+          <div class="post-body">${post.bodyHtml}</div>
+        </article>
+      `;
+    } catch (err) {
+      root.innerHTML = `<p>Błąd podczas ładowania podglądu: ${escapeHtml(String(err))}</p>`;
+    }
+  }
+
+  run();
+</script>
