@@ -16,7 +16,11 @@ const formattedDate = new Date(post.publishDate).toLocaleDateString('pl-PL', {
 });
 ---
 
-<BaseLayout title={post.seoTitle ?? post.title} description={post.seoDescription ?? post.excerpt}>
+<BaseLayout
+  title={post.seoTitle ?? post.title}
+  description={post.seoDescription ?? post.excerpt}
+  image={post.featuredImage?.url}
+>
   <article>
     <h1>{post.title}</h1>
     <p class="post-meta">{formattedDate}</p>

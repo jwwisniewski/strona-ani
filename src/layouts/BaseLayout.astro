@@ -8,12 +8,15 @@ interface Props {
   title?: string;
   description?: string;
   noindex?: boolean;
+  image?: string;
 }
 
-const { title, description, noindex } = Astro.props;
+const { title, description, noindex, image } = Astro.props;
 const siteSettings = await getSiteSettings();
 const pageTitle = title ? `${title} — ${siteSettings.siteTitle}` : siteSettings.siteTitle;
 const pageDescription = description ?? siteSettings.siteDescription;
+const pageImage = image ?? siteSettings.logo?.url;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <html lang="pl">
@@ -26,6 +29,18 @@ const pageDescription = description ?? siteSettings.siteDescription;
 		<title>{pageTitle}</title>
 		{pageDescription && <meta name="description" content={pageDescription} />}
 		{noindex && <meta name="robots" content="noindex" />}
+		<link rel="canonical" href={canonicalUrl} />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content={pageTitle} />
+		{pageDescription && <meta property="og:description" content={pageDescription} />}
+		<meta property="og:url" content={canonicalUrl} />
+		{pageImage && <meta property="og:image" content={pageImage} />}
+
+		<meta name="twitter:card" content={pageImage ? 'summary_large_image' : 'summary'} />
+		<meta name="twitter:title" content={pageTitle} />
+		{pageDescription && <meta name="twitter:description" content={pageDescription} />}
+		{pageImage && <meta name="twitter:image" content={pageImage} />}
 	</head>
 	<body>
 		<Header siteSettings={siteSettings} />
