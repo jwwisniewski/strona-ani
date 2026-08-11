@@ -17,5 +17,8 @@
     "@contentful/rich-text-types": "^17.2.7",
     "astro": "^7.2.0",
     "contentful": "^11.12.9"
+  },
+  "devDependencies": {
+    "wrangler": "^4.120.1"
   }
 }
