@@ -10,19 +10,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <script>
   import { createClient } from 'contentful';
-  import { mapBlogPost } from '../lib/contentful-mappers';
+  import { mapBlogPost, escapeHtml } from '../lib/contentful-mappers';
   import { buildSrcSet } from '../lib/contentful-image';
   import { ContentfulLivePreview } from '@contentful/live-preview';
 
   ContentfulLivePreview.init({ locale: 'pl-PL', enableInspectorMode: true, enableLiveUpdates: true });
-
-  function escapeHtml(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
 
   const root = document.getElementById('preview-root')!;
   const params = new URLSearchParams(window.location.search);
@@ -66,7 +58,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       const fieldTag = (fieldId: string) => `data-contentful-field-id="${fieldId}" data-contentful-entry-id="${post.id}" data-contentful-locale="pl-PL"`;
 
       const imageHtml = post.featuredImage
-        ? `<img ${fieldTag('featuredImage')} src="${post.featuredImage.url}" srcset="${buildSrcSet(post.featuredImage.url, [400, 800, 1200])}" alt="${escapeHtml(post.featuredImage.alt)}" width="${post.featuredImage.width ?? ''}" height="${post.featuredImage.height ?? ''}" />`
+        ? `<img ${fieldTag('featuredImage')} src="${escapeHtml(post.featuredImage.url)}" srcset="${escapeHtml(buildSrcSet(post.featuredImage.url, [400, 800, 1200]))}" alt="${escapeHtml(post.featuredImage.alt)}" width="${post.featuredImage.width ?? ''}" height="${post.featuredImage.height ?? ''}" />`
         : '';
 
       root.innerHTML = `

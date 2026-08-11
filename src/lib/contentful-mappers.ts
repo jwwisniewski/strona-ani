@@ -18,6 +18,18 @@ import type {
 // (contentful.ts) and client-side preview code (podglad.astro), which
 // use different clients/credentials (Delivery vs Preview API).
 
+// Contentful field values (slug, title, name) have no format validation at the
+// schema level, so anything interpolated into raw HTML strings here must be
+// escaped — unlike the rich-text renderer's own text nodes, which already
+// escape internally.
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 // A single malformed entry (missing required field, broken reference) must not
 // take down the whole static build. Mapping functions below throw on invalid
 // data; safeMap catches that per-entry, logs it, and skips just that entry.
@@ -90,7 +102,7 @@ export const richTextOptions: Options = {
     [INLINES.ENTRY_HYPERLINK]: (node, next) => {
       const url = resolveEntryUrl(node.data.target);
       const text = next(node.content);
-      return url ? `<a href="${url}">${text}</a>` : text;
+      return url ? `<a href="${escapeHtml(url)}">${text}</a>` : text;
     },
     [BLOCKS.EMBEDDED_ENTRY]: (node) => {
       const url = resolveEntryUrl(node.data.target);
@@ -98,14 +110,14 @@ export const richTextOptions: Options = {
       if (!url || !title) return '';
       const thumbnail = entryThumbnail(node.data.target);
       const img = thumbnail
-        ? `<img class="embedded-entry-card-thumb" src="${thumbnail.url}" alt="" width="80" height="80" />`
+        ? `<img class="embedded-entry-card-thumb" src="${escapeHtml(thumbnail.url)}" alt="" width="80" height="80" />`
         : '';
-      return `<a class="embedded-entry-card" href="${url}">${img}<span>${title}</span></a>`;
+      return `<a class="embedded-entry-card" href="${escapeHtml(url)}">${img}<span>${escapeHtml(title)}</span></a>`;
     },
     [INLINES.EMBEDDED_ENTRY]: (node) => {
       const url = resolveEntryUrl(node.data.target);
       const title = entryTitle(node.data.target) ?? '';
-      return url ? `<a href="${url}">${title}</a>` : title;
+      return url ? `<a href="${escapeHtml(url)}">${escapeHtml(title)}</a>` : escapeHtml(title);
     },
   },
 };
