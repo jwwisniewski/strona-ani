@@ -85,7 +85,7 @@ No `Author` content type: this is a single-author blog with no stated need for m
 8. **Gotcha hit during first deploy:** `CONTENTFUL_ENVIRONMENT` was accidentally entered as `aster` (truncated `master`) in the dashboard, causing a Contentful 404 at build time. Fixed by correcting the variable value and retrying.
 9. **Still open:** deploy-failure notifications (Cloudflare dashboard → Notifications) not yet configured — carry this into Phase 9 polish/handoff, since the wife needs to know if a publish doesn't go live.
 
-## Contentful → Cloudflare Rebuild Trigger
+## Contentful → Cloudflare Rebuild Trigger — DONE
 
 Under the unified Workers Git-integration flow this project actually uses (see Deploy Pipeline above), the equivalent feature is called **Deploy Hooks** (renamed from Pages' "Build hooks"), with built-in deduplication if the webhook fires multiple times in a burst:
 
@@ -109,7 +109,7 @@ Under the unified Workers Git-integration flow this project actually uses (see D
 4. **Gallery** — content type wired up, index + detail pages, `srcset` images.
 5. **Contact form** — DONE. Web3Forms integration + thank-you page; real submission confirmed delivered by email.
 6. **Deploy pipeline** — DONE. Live at `strona-ani.j-w-wisniewski.workers.dev` via Cloudflare's unified Workers Git-integration (see Deploy Pipeline section for actual mechanics vs. original plan). Deploy-failure notifications still outstanding — moved to Phase 9.
-7. **Automation** — Contentful build-hook webhook; publish a test entry, confirm rebuild + live update. (Re-verify Build Hooks UI still applies under the Workers-based project type before following the written steps.)
+7. **Automation** — DONE. Deploy Hook created (Workers & Pages → Settings → Builds → Deploy Hooks), Contentful webhook created via Management API scoped to the four content types. Verified end-to-end: republished a test entry, webhook call logged `200` in Contentful, a new Cloudflare deployment landed ~40s later, site confirmed still live after.
 8. **Custom domain** — add `blog.herdomain.com`, configure DNS, verify SSL.
 9. **Polish/handoff** — sitemap, robots.txt, favicon, basic SEO meta, optional cookie-free Cloudflare Web Analytics, deploy-failure notifications (deferred from Phase 6), and a short "how to publish a post" guide (with screenshots) for the wife.
 10. **Iterate** — real content, design refinement, revisit `en-US` activation when actually needed.
