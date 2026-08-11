@@ -51,19 +51,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       environment: 'master',
     });
 
-    try {
-      const res = await client.getEntries({
-        content_type: 'blogPost',
-        'fields.slug': slug,
-        locale: 'pl-PL',
-        include: 2,
-      });
-      const entry = res.items[0];
-      if (!entry) {
-        root.innerHTML = '<p>Nie znaleziono wpisu o tym slugu (sprawdź, czy jest zapisany w Contentful).</p>';
-        return;
-      }
-
+    function renderPost(entry: unknown) {
       const post = mapBlogPost(entry as never);
       const date = new Date(post.publishDate).toLocaleDateString('pl-PL', {
         year: 'numeric',
@@ -93,6 +81,30 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <div class="post-body" ${fieldTag('body')}>${post.bodyHtml}</div>
         </article>
       `;
+    }
+
+    try {
+      const res = await client.getEntries({
+        content_type: 'blogPost',
+        'fields.slug': slug,
+        locale: 'pl-PL',
+        include: 2,
+      });
+      const entry = res.items[0];
+      if (!entry) {
+        root.innerHTML = '<p>Nie znaleziono wpisu o tym slugu (sprawdź, czy jest zapisany w Contentful).</p>';
+        return;
+      }
+
+      renderPost(entry);
+
+      // Live updates: re-render whenever the editor sends field-level edits
+      // for this entry, without needing a manual refresh or a new fetch.
+      ContentfulLivePreview.subscribe({
+        data: entry,
+        locale: 'pl-PL',
+        callback: (updatedEntry) => renderPost(updatedEntry),
+      });
     } catch (err) {
       root.innerHTML = `<p>Błąd podczas ładowania podglądu: ${escapeHtml(String(err))}</p>`;
     }
