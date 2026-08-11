@@ -87,9 +87,9 @@ No `Author` content type: this is a single-author blog with no stated need for m
 
 ## Contentful → Cloudflare Rebuild Trigger
 
-**Note:** written against classic Pages' "Build hooks" UI — since this project turned out to use the newer unified Workers Git-integration flow (see Deploy Pipeline above), verify this UI/feature still exists identically before following these steps; may need re-verification against current dashboard.
+Under the unified Workers Git-integration flow this project actually uses (see Deploy Pipeline above), the equivalent feature is called **Deploy Hooks** (renamed from Pages' "Build hooks"), with built-in deduplication if the webhook fires multiple times in a burst:
 
-1. Cloudflare Pages → Settings → Builds & deployments → Build hooks → create one, copy the POST URL.
+1. Cloudflare dashboard → Workers & Pages → `strona-ani` → Settings → Builds → Deploy Hooks → create one (tied to the `main` branch) → copy the POST URL.
 2. Contentful → Settings → Webhooks → add webhook pointing at that URL, triggered on Entry publish/unpublish/delete + Asset publish, scoped to the four content types above (avoids spurious rebuilds from unrelated changes).
 3. Result: wife publishes in Contentful → webhook fires → Cloudflare rebuilds → live in ~1-2 min.
 
