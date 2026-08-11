@@ -71,16 +71,23 @@ No `Author` content type: this is a single-author blog with no stated need for m
 
 (Considered Cloudflare's own Email Service as a native alternative since DNS will be on Cloudflare — ruled out for now: general sending requires the Workers Paid plan, and while sending to one pre-verified destination address is free, it still requires building a Pages Function + Turnstile rather than a plain static form. Not worth the added complexity for MVP; Web3Forms keeps the contact form a zero-backend static form like the rest of the site.)
 
-## Deploy Pipeline
+## Deploy Pipeline — DONE (live at `strona-ani.j-w-wisniewski.workers.dev`)
 
-1. Push scaffolded repo to a new GitHub repo.
-2. Cloudflare dashboard → Pages → Create project → Connect to Git → select repo.
-3. Build settings: preset **Astro**, build command `npm run build`, output `dist`, Node version pinned via `.nvmrc`.
-4. Set env vars in Pages project settings: `CONTENTFUL_SPACE_ID`, `CONTENTFUL_DELIVERY_TOKEN`, `CONTENTFUL_ENVIRONMENT=master`, `PUBLIC_WEB3FORMS_ACCESS_KEY`.
-5. Every push to `main` deploys to production; other branches get automatic preview URLs.
-6. Cloudflare dashboard → Notifications → add a "Pages deployment failed" alert to an email the wife checks, so a failed rebuild (e.g. from Fix #1's build resilience gap being hit anyway) is visible instead of silently leaving the site stale after she publishes.
+**Actual mechanics differ from the original plan** — Cloudflare's dashboard now routes new "Connect to Git" projects through its unified Workers deployment system, not the classic Pages-specific build pipeline:
+
+1. Pushed scaffolded repo to GitHub (`jwwisniewski/strona-ani`).
+2. Cloudflare dashboard → Workers & Pages → Create → Connect to Git → select repo. The setup screen asks for a **build command** (`npm run build`) and a separate **deploy command** — pre-filled as `npx wrangler deploy` (non-production branches use `npx wrangler versions upload` for preview versions instead).
+3. This means the repo needs its own `wrangler.jsonc` with an `assets.directory` pointing at `dist/` — added at repo root (minimal config, no Worker entry point needed since it's pure static serving, no dynamic routing). Verified locally first with `npx wrangler deploy --dry-run` before relying on the dashboard's Deploy button.
+4. Env vars set via the project's "Variable name/value" fields (build-time): `CONTENTFUL_SPACE_ID`, `CONTENTFUL_DELIVERY_TOKEN` (Encrypt), `CONTENTFUL_ENVIRONMENT=master`, `PUBLIC_WEB3FORMS_ACCESS_KEY` (Encrypt).
+5. Node version pinned via `.nvmrc`; Cloudflare auto-detected `nodejs@22.12.0` from it.
+6. Every push to `main` deploys to production; other branches get preview versions (per step 2's non-production deploy command).
+7. Cloudflare's default trailing-slash redirect behavior for static assets (e.g. `/blog` → `307` → `/blog/` → `200`) is expected, not a bug — confirmed during verification.
+8. **Gotcha hit during first deploy:** `CONTENTFUL_ENVIRONMENT` was accidentally entered as `aster` (truncated `master`) in the dashboard, causing a Contentful 404 at build time. Fixed by correcting the variable value and retrying.
+9. **Still open:** deploy-failure notifications (Cloudflare dashboard → Notifications) not yet configured — carry this into Phase 9 polish/handoff, since the wife needs to know if a publish doesn't go live.
 
 ## Contentful → Cloudflare Rebuild Trigger
+
+**Note:** written against classic Pages' "Build hooks" UI — since this project turned out to use the newer unified Workers Git-integration flow (see Deploy Pipeline above), verify this UI/feature still exists identically before following these steps; may need re-verification against current dashboard.
 
 1. Cloudflare Pages → Settings → Builds & deployments → Build hooks → create one, copy the POST URL.
 2. Contentful → Settings → Webhooks → add webhook pointing at that URL, triggered on Entry publish/unpublish/delete + Asset publish, scoped to the four content types above (avoids spurious rebuilds from unrelated changes).
@@ -100,11 +107,11 @@ No `Author` content type: this is a single-author blog with no stated need for m
 2. **Contentful integration** — `contentful.ts` client + helpers; verify rich text and image rendering locally against real data; confirm a deliberately malformed sample entry is skipped/logged rather than crashing the build.
 3. **Core pages** — home, blog index (+ pagination), post detail, category page (+ same pagination pattern as blog index).
 4. **Gallery** — content type wired up, index + detail pages, `srcset` images.
-5. **Contact form** — Web3Forms integration + thank-you page; test a real submission.
-6. **Deploy pipeline** — connect Cloudflare Pages to GitHub, set env vars, enable deploy-failure email notifications, confirm first `*.pages.dev` deploy.
-7. **Automation** — Contentful build-hook webhook; publish a test entry, confirm rebuild + live update.
+5. **Contact form** — DONE. Web3Forms integration + thank-you page; real submission confirmed delivered by email.
+6. **Deploy pipeline** — DONE. Live at `strona-ani.j-w-wisniewski.workers.dev` via Cloudflare's unified Workers Git-integration (see Deploy Pipeline section for actual mechanics vs. original plan). Deploy-failure notifications still outstanding — moved to Phase 9.
+7. **Automation** — Contentful build-hook webhook; publish a test entry, confirm rebuild + live update. (Re-verify Build Hooks UI still applies under the Workers-based project type before following the written steps.)
 8. **Custom domain** — add `blog.herdomain.com`, configure DNS, verify SSL.
-9. **Polish/handoff** — sitemap, robots.txt, favicon, basic SEO meta, optional cookie-free Cloudflare Web Analytics, and a short "how to publish a post" guide (with screenshots) for the wife.
+9. **Polish/handoff** — sitemap, robots.txt, favicon, basic SEO meta, optional cookie-free Cloudflare Web Analytics, deploy-failure notifications (deferred from Phase 6), and a short "how to publish a post" guide (with screenshots) for the wife.
 10. **Iterate** — real content, design refinement, revisit `en-US` activation when actually needed.
 
 ## Future Shopping-Cart Flags (not built now)
