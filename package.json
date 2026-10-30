@@ -20,7 +20,7 @@
     "contentful": "^11.12.9"
   },
   "devDependencies": {
-    "wrangler": "^4.120.1"
+    "wrangler": "^4.156.0"
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
